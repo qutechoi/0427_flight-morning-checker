@@ -1,0 +1,14 @@
+{
+  "routeFrom": "CJJ",
+  "routeTo": "CJU",
+  "date": "2026-09-24",
+  "source": "KAYAK",
+  "hasMorningFlight": false,
+  "morningFlightCount": 0,
+  "morningFlights": [],
+  "targetDayFlightCount": 0,
+  "notes": [
+    "현재 소스가 목표 날짜의 정확한 편 데이터를 노출하지 않아 잠정 결과입니다."
+  ],
+  "fetchedAt": "2026-04-27T12:00:00Z"
+}
