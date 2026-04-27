@@ -52,6 +52,7 @@ def fetch(url: str) -> str:
 
 def clean(text: str) -> str:
     text = unescape(text)
+    text = re.sub(r'<[^>]+>', ' ', text)
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
 
@@ -78,7 +79,7 @@ def extract_kayak_flights(html: str) -> List[Flight]:
                 airline=clean(airline),
                 departureTime=departure,
                 arrivalTime=arrival,
-                source='KAYAK',
+                source='KAYAK-structured',
             )
         )
     return flights
@@ -115,10 +116,17 @@ def check_multi(route_from: str, route_to: str, date_str: str) -> Result:
 
     kayak_html = fetch(KAYAK_ROUTE_URL)
     kayak_title, kayak_desc = extract_meta(kayak_html)
+    kayak_text = clean(kayak_html)
     kayak_flights = extract_kayak_flights(kayak_html)
     target_day = filter_target_day(kayak_flights, date_str)
     morning = filter_morning(target_day)
-    airlines = detect_airlines(f'{kayak_title} {kayak_desc}')
+
+    airline_sources = [kayak_title, kayak_desc, kayak_text[:12000]]
+    airlines = []
+    for chunk in airline_sources:
+        for airline in detect_airlines(chunk):
+            if airline not in airlines:
+                airlines.append(airline)
 
     airport_available = False
     try:
@@ -130,7 +138,7 @@ def check_multi(route_from: str, route_to: str, date_str: str) -> Result:
     evidence_level = 'low'
     if target_day:
         evidence_level = 'high'
-    elif airlines and airport_available:
+    elif len(airlines) >= 3 and airport_available:
         evidence_level = 'medium'
     elif airlines:
         evidence_level = 'low'
@@ -138,9 +146,11 @@ def check_multi(route_from: str, route_to: str, date_str: str) -> Result:
     if not target_day:
         notes.append('현재 KAYAK route 페이지가 목표 날짜의 실제 편 데이터를 직접 노출하지 않아, 오전편 판정은 아직 잠정적입니다.')
     if airlines:
-        notes.append('메타 설명 기준으로 현재 노선에서 보이는 항공사 힌트를 함께 기록했습니다.')
+        notes.append('메타 설명과 본문 텍스트 기준으로 현재 노선 관련 항공사 힌트를 넓게 수집했습니다.')
     if airport_available:
         notes.append('청주공항 운항스케줄 페이지 접근은 가능하지만, 현재 일반 fetch만으로는 목표 날짜별 상세 편명/시간이 직접 추출되지는 않습니다.')
+    if '아시아나항공' not in airlines:
+        notes.append('현재 공개 소스 텍스트에서는 아시아나항공이 직접 감지되지 않았습니다. 나중에 노출되면 자동으로 포함됩니다.')
 
     return Result(
         routeFrom=route_from,

@@ -2,34 +2,41 @@
 
 청주(CJJ) → 제주(CJU) 노선에서 **특정 날짜 오전 12시 이전 출발편이 있는지** 확인하기 위한 전용 Python CLI 도구입니다.
 
-## What changed in v2
+## What changed in v3
 
-2차 개발에서는 단일 소스만 보는 대신 다음을 함께 확인합니다.
+3차 개발에서는 항공사 힌트 수집 범위를 더 넓혔습니다.
 
-- **KAYAK route page**의 구조화된 `Flight` 메타데이터
-- **KAYAK meta description** 에서 보이는 항공사 힌트
-- **청주공항 운항스케줄 페이지** 접근 가능 여부
+이제 다음 항공사를 감지 대상으로 둡니다.
+- 대한항공
+- 아시아나항공
+- 제주항공
+- 진에어
+- 이스타 항공
+- 티웨이항공
+- 에어로케이항공 / Aero K
 
-즉, 단순 yes/no 대신:
-- 오전편 실제 검출 여부
-- 목표 날짜 편 검출 수
-- 감지된 항공사
-- 근거 수준(`high` / `medium` / `low`)
-을 함께 돌려줍니다.
+그리고 KAYAK의:
+- 구조화된 flight 메타데이터
+- meta description
+- 본문 텍스트 일부
+를 함께 스캔해서 `detectedAirlines`를 넓게 채웁니다.
+
+## Important note
+
+이 항공사 목록은 **실제 예약 가능 확정 목록**이 아니라,
+현재 공개 소스에서 **노선 관련 근거로 감지된 항공사 힌트**입니다.
+
+즉:
+- `detectedAirlines`는 노선 후보/근거
+- `morningFlights`는 실제 목표 날짜 인스턴스를 잡았을 때의 직접 근거
+
+라고 이해하면 됩니다.
 
 ## Evidence levels
 
 - `high`: 목표 날짜의 실제 flight instance가 검출됨
-- `medium`: 목표 날짜 인스턴스는 없지만, 노선 항공사 힌트 + 공항 스케줄 페이지 접근이 확인됨
-- `low`: 메타 힌트만 있는 잠정 상태
-
-## Why this exists
-
-필요한 건 “최저가”가 아니라:
-
-> **2026-09-24 청주 → 제주 노선에 오전 출발편이 있는가?**
-
-이 질문에 답하는 것입니다.
+- `medium`: 목표 날짜 인스턴스는 없지만, 여러 항공사 힌트 + 공항 스케줄 페이지 접근이 확인됨
+- `low`: 제한된 힌트만 있는 잠정 상태
 
 ## Usage
 
@@ -37,36 +44,25 @@
 python3 flight_morning_checker.py
 ```
 
-### Custom arguments
-
-```bash
-python3 flight_morning_checker.py --from CJJ --to CJU --date 2026-09-24 --source multi
-```
-
 ## Output fields
 
-- `hasMorningFlight`: 오전 12시 전 출발편 탐지 여부
-- `morningFlightCount`: 오전편 개수
-- `morningFlights`: 오전편 상세 목록
-- `targetDayFlightCount`: 목표 날짜로 검출된 전체 편 개수
-- `detectedAirlines`: 메타/보조근거에서 감지된 항공사
-- `evidenceLevel`: 근거 수준
-- `notes`: 한계/보조 설명
+- `hasMorningFlight`
+- `morningFlightCount`
+- `morningFlights`
+- `targetDayFlightCount`
+- `detectedAirlines`
+- `evidenceLevel`
+- `notes`
 
 ## Current limitation
 
-현재 가장 큰 한계는 여전합니다.
+여전히 핵심 한계는 남아 있습니다.
 
-- 공개 페이지가 **목표 날짜의 실제 편 인스턴스**를 항상 노출하지 않음
-- 항공사 사이트는 봇 차단/오류 페이지가 자주 발생함
-- 공항 페이지는 일반 fetch만으로는 날짜별 상세 운항편 추출이 제한됨
+- 공개 페이지가 목표 날짜 실제 편 데이터를 항상 노출하지 않음
+- 항공사 사이트는 봇 차단/오류 페이지가 잦음
+- 그래서 일부 항공사는 텍스트 근거로만 감지될 수 있음
 
-그래서 이 도구는 지금도 **전용 로직으로서의 기반**은 갖췄지만,
-정확도를 더 올리려면 다음이 필요할 수 있습니다.
-
-## Recommended next steps
-
-- 항공사별 예약 페이지 전용 파서 추가
-- 브라우저 자동화 가능한 수집기 추가
-- 다중 소스 교차검증 강화
-- 날짜 파라미터를 실제 검색에 반영하는 쿼리 경로 확보
+하지만 현재 버전은 이전보다:
+- 항공사 범위가 넓고
+- 근거가 더 많고
+- cron 보고용으로 더 실용적입니다.
